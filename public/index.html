@@ -23,6 +23,50 @@
     </div>
   </header>
 
+  <!-- Agregar después del header y antes del main -->
+<section class="py-4 bg-white">
+  <div class="container">
+    <div class="row g-3">
+      <!-- Campo de búsqueda por nombre -->
+      <div class="col-md-6">
+        <label for="search-input" class="form-label">Buscar productos</label>
+        <input 
+          type="text" 
+          id="search-input" 
+          class="form-control" 
+          placeholder="Escribe el nombre del producto..."
+        >
+      </div>
+      
+      <!-- Filtro por rango de precios -->
+      <div class="col-md-6">
+        <label for="price-range" class="form-label">Filtrar por precio máximo</label>
+        <div class="d-flex align-items-center gap-3">
+          <input 
+            type="range" 
+            id="price-range" 
+            class="form-range" 
+            min="0" 
+            max="500000" 
+            step="50000"
+            value="500000"
+          >
+          <span id="price-value" class="badge bg-primary">$500.000</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Botón para limpiar filtros -->
+    <div class="row mt-3">
+      <div class="col-12">
+        <button id="clear-filters" class="btn btn-outline-secondary btn-sm">
+          Limpiar filtros
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
   <main class="container py-4">
     <div id="product-list" class="row g-4"></div>
   </main>
