@@ -10,6 +10,15 @@ async function getCart() {
   return res.json();
 }
 
+let CSRF = null;
+async function getCSRF() {
+  if (CSRF) return CSRF;
+  const r = await fetch('/api/csrf-token', { credentials: 'include' });
+  CSRF = (await r.json()).csrfToken;
+  return CSRF;
+}
+
+
 async function renderCart() {
   const [products, cart] = await Promise.all([getProducts(), getCart()]);
   const map = new Map(products.map(p => [p.id, p]));
@@ -52,29 +61,58 @@ async function renderCart() {
       const id = Number(btn.dataset.id);
       const action = btn.dataset.action;
       if (action === 'remove') {
-        await fetch('/api/cart/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: id }) });
-      } else {
-        // Simulate inc/dec by add/remove
-        if (action === 'inc') {
-          await fetch('/api/cart/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: id, qty: 1 }) });
-        } else if (action === 'dec') {
-          // to decrease, remove then re-add qty-1 (simple approach)
-          const curr = (await getCart()).find(i => i.productId === id)?.qty || 0;
-          await fetch('/api/cart/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: id }) });
-          const newQty = Math.max(0, curr - 1);
-          if (newQty > 0) {
-            await fetch('/api/cart/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: id, qty: newQty }) });
-          }
-        }
-      }
+  const csrf = await getCSRF();
+  await fetch('/api/cart/remove', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+    credentials: 'include',
+    body: JSON.stringify({ productId: id })
+  });
+} else {
+  if (action === 'inc') {
+    const csrf = await getCSRF();
+    await fetch('/api/cart/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+      credentials: 'include',
+      body: JSON.stringify({ productId: id, qty: 1 })
+    });
+  } else if (action === 'dec') {
+    // bajar cantidad: remove + (si queda >0) re-add con qty-1
+    const curr = (await getCart()).find(i => i.productId === id)?.qty || 0;
+
+    let csrf = await getCSRF();
+    await fetch('/api/cart/remove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+      credentials: 'include',
+      body: JSON.stringify({ productId: id })
+    });
+
+    const newQty = Math.max(0, curr - 1);
+    if (newQty > 0) {
+      csrf = await getCSRF();
+      await fetch('/api/cart/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        credentials: 'include',
+        body: JSON.stringify({ productId: id, qty: newQty })
+      });
+    }
+  }
+}
       renderCart();
     });
   });
 }
 
 document.getElementById('btn-clear')?.addEventListener('click', async () => {
-  await fetch('/api/cart/clear', { method: 'POST' });
+  const csrf = await getCSRF();
+  await fetch('/api/cart/clear', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+    credentials: 'include'
+  });
   renderCart();
 });
 
-renderCart();
